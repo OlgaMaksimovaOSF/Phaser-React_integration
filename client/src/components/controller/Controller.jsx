@@ -1,10 +1,12 @@
 const ROLE = 'controller';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
 import initSocket from '../../services/socketService';
 import deviceOrientationTrackingService from '../../services/deviceOrientationTrackingService';
+
+import throttle from 'lodash.throttle';
 
 const Controller = (props) => {
     const socketRef = useRef(null);
@@ -12,9 +14,9 @@ const Controller = (props) => {
     const { gameId } = useParams();
     const [isPaired, setIsPaired] = useState(false);
     const [isAiming, setIsAiming] = useState(false);
-
+    const [isHit, setIsHit] = useState(false);
+ 
     const connectionCb = () => {
-
         if (socketRef.current?.id && gameId) {
             socketRef.current.emit('joinGame', {
                 controllerId: socketRef.current.id,
@@ -25,15 +27,24 @@ const Controller = (props) => {
     };
 
     const pairedCb = () => {
-        alert('Controller paired. Calibrating 🎯 ...');
+        //alert('Controller paired. Calibrating 🎯 ...');
     }
 
     const joinedCb = () => {
-        alert('controller joined');
+        // alert('controller joined');
     }
 
     const disconnectedCb = () => {
-        alert('controller disconnected')
+        //alert('controller disconnected')
+    }
+
+    const messageCb = (data) => {
+        if (data.type === 'hit') {
+            setIsHit(true);
+            setTimeout(() => {
+                setIsHit(false);
+            }, 1000);
+        }
     }
 
     const handleAimClick = () => {
@@ -52,6 +63,13 @@ const Controller = (props) => {
         setIsAiming(false);
     }
 
+    const handleFireBtnClick = useCallback(
+        throttle(() => {
+            socketRef.current.emit('fire', { gameId: gameId });
+        }, 500),
+        [gameId]
+    );
+
 
     useEffect(() => {
         const socket = initSocket(ROLE, {
@@ -59,7 +77,8 @@ const Controller = (props) => {
             gameCreated: null,
             joined: joinedCb,
             paired: pairedCb,
-            disconnect: disconnectedCb
+            disconnect: disconnectedCb,
+            message: messageCb
 
         });
 
@@ -69,21 +88,33 @@ const Controller = (props) => {
 
 
         return () => {
-            socket.disconnect();
-            deviceOrientationTrackingService.stopTracking();
+            //socket.disconnect();
+            //deviceOrientationTrackingService.stopTracking();
         }
     }, []);
 
-
     return (
-        <div>
-            Controller
-            {isPaired ? ' Paired ✅' : ' Not Paired ❌'}
+        <>
+            <div>
+                Controller
+                {isPaired ? ' Paired ✅' : ' Not Paired ❌'}
+            </div>
 
-            <button onClick={isAiming ? handleStopAimClick : handleAimClick}>
+            <button className={`btn ${isAiming ? 'btn-danger pos-fixed pos-tr' : 'btn-primary mt-3'} ${!isPaired ? '' : 'hidden'}`} onClick={isAiming ? handleStopAimClick : handleAimClick}>
                 {isAiming ? 'Stop Aiming' : 'Start Aiming'}
             </button>
-        </div>
+
+            {
+                isAiming && <button className="btn btn-danger mt-3" onClick={handleFireBtnClick}> Fire! </button>
+            }
+
+            {   isHit
+                && 
+                <div className="pos-fixed pos-tc alert">
+                    {isHit ? 'Hit! 🎯' : ''}
+                </div>
+            }
+        </>
     )
 };
 

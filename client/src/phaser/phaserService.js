@@ -51,11 +51,19 @@ const setCrosshairPosition = (x, y) => {
 
 }
 
+const fire = () => {
+    if (!sceneInstance) return;
+    const result = sceneInstance.fire();
+
+    return result;
+}
+
 const updateCrosshairPosition = () => {}
 
 export default {
     init,
     destroy,
     setCrosshairPosition,
-    updateCrosshairPosition
+    updateCrosshairPosition,
+    fire
 }

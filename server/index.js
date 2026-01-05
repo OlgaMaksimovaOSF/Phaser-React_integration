@@ -112,4 +112,11 @@ io.on('connection', (socket) => {
         io.to(games.get(data.gameId).screenSocketId).emit('orientation', data);
     });
 
+    socket.on('fire', (data) => {
+        io.to(games.get(data.gameId).screenSocketId).emit('fire', data);
+    });
+
+    socket.on('kill', (data) => {
+        io.to(games.get(games).controllerSocketId).emit('message', {type: 'kill', message: `Good job! Target destroyed! \n Reward: +${data.reward}`})
+    })
 });

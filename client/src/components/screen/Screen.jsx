@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import Phaser from "phaser";
 import initSocket from "../../services/socketService";
@@ -11,7 +11,14 @@ const Screen = () => {
     //const [orientationData, setOrientationData] = useState(null);
 
     const fireCb = (data) => {
-        console.log('fire');
+        if (!data.gameId || data.gameId !== gameId) return;
+        const res = phaserService.fire();
+        if (res && res.killed) {
+            socketRef.current.emit('kill', {
+                gameId: gameId,
+                reward: res.reward
+            })
+        }
     }
     
     const orientationCb = (data) => {
