@@ -8,6 +8,8 @@ import deviceOrientationTrackingService from '../../services/deviceOrientationTr
 
 import throttle from 'lodash.throttle';
 
+import Alert from '../shared/alert/Alert';
+
 const Controller = (props) => {
     const socketRef = useRef(null);
     
@@ -15,6 +17,7 @@ const Controller = (props) => {
     const [isPaired, setIsPaired] = useState(false);
     const [isAiming, setIsAiming] = useState(false);
     const [isHit, setIsHit] = useState(false);
+    const [msg, setMsg] = useState('');
  
     const connectionCb = () => {
         if (socketRef.current?.id && gameId) {
@@ -35,14 +38,20 @@ const Controller = (props) => {
     }
 
     const disconnectedCb = () => {
-        //alert('controller disconnected')
+        alert('controller disconnected');
+        if (socketRef.current?.id && gameId) {
+            socketRef.current.emit('connectionlost', { gameId: gameId, role: ROLE });
+        }
     }
 
     const messageCb = (data) => {
-        if (data.type === 'hit') {
+        if (data.type === 'kill') {
             setIsHit(true);
+            setMsg(data.message);
+
             setTimeout(() => {
                 setIsHit(false);
+                setMsg('');
             }, 1000);
         }
     }
@@ -86,6 +95,8 @@ const Controller = (props) => {
 
         socketRef.current = socket;
 
+        window.addEventListener('beforeunload', disconnectedCb);
+
 
         return () => {
             //socket.disconnect();
@@ -110,9 +121,8 @@ const Controller = (props) => {
 
             {   isHit
                 && 
-                <div className="pos-fixed pos-tc alert">
-                    {isHit ? 'Hit! 🎯' : ''}
-                </div>
+                <Alert msg={msg}></Alert>
+                    
             }
         </>
     )

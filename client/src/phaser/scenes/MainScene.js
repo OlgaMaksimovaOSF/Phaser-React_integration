@@ -7,7 +7,7 @@ const targetTypes = [
     {
         type: 'scout',
         hits: 1,
-        reward: 10,
+        reward: 30,
         size: 40,
         speed: Phaser.Math.Between(120, 200)
     },
@@ -21,7 +21,7 @@ const targetTypes = [
     {
         type: 'bomber',
         hits: 5,
-        reward: 30,
+        reward: 10,
         size: 80,
         speed: Phaser.Math.Between(80, 120)
     }
@@ -109,9 +109,11 @@ class MainScene extends Phaser.Scene {
             );
 
             const sprite = createTarget(this, randomX, randomY, type.size, getRandomColor(), 0xffffff);
+            console.log(type);
 
             sprite.setData('type', type.type);
             sprite.setData('hits', type.hits);
+            sprite.setData('reward', type.reward);
             sprite.setData('velocity', velocity);
             sprite.setData('bounds', {
                 left: type.size / 2,
@@ -193,11 +195,11 @@ class MainScene extends Phaser.Scene {
             result.type = this.activeTarget.getData('type');
 
             if (hits <= 0) {
+                result.reward = this.activeTarget.getData('reward');
+                result.killed = true;
                 this.targetGroup.remove(this.activeTarget, true, true);
                 Phaser.Utils.Array.Remove(this.targets, this.activeTarget);
-                result.reward = this.activeTarget.getData('reward');
                 this.activeTarget = null;
-                result.killed = true;
             }
         }
 

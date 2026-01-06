@@ -80,6 +80,9 @@ io.on('connection', (socket) => {
     console.log('a user connected');
     let currentGameId;
     let role;
+    let origin = socket.handshake.headers.origin;
+
+    console.log('origin', origin);
 
     socket.on('createGame', (data) => {
         const newGame = createGame();
@@ -117,6 +120,19 @@ io.on('connection', (socket) => {
     });
 
     socket.on('kill', (data) => {
-        io.to(games.get(games).controllerSocketId).emit('message', {type: 'kill', message: `Good job! Target destroyed! \n Reward: +${data.reward}`})
+        io.to(games.get(data.gameId).controllerSocketId).emit('message', {type: 'kill', message: `Good job! Target destroyed! \n Reward: +${data.reward}`})
+    });
+
+    socket.on('connectionlost', (data) => {
+        const gameInstance = games.get(data.gameId);
+
+        if (role === 'screen') {
+            io.to(gameInstance.controllerSocketId).emit('message', { type: 'error', message: 'Screen connection lost. Please refresh the page and try again.', action: null });
+        } else {
+            io.to(gameInstance.screenSocketId).emit('message', { type: 'error', message: 'Controller connection lost. Please refresh the page and try again.', action: origin });
+        }
+
+        manageGameStorage(games, { id: currentGameId }, 'delete');
+        
     })
 });

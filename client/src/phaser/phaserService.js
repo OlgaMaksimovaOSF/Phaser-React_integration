@@ -26,7 +26,7 @@ const defaultSettings = {
 const init = (container, settings) => {
     if (!container || gameInstance) return;
 
-    console.log('init', container, settings)
+    //og('init', container, settings)
     const config = {...defaultSettings, ...settings, parent: container}
     gameInstance = new Phaser.Game(config);
 
@@ -44,8 +44,8 @@ const destroy = () => {
     sceneInstance = null;     
 }
 const setCrosshairPosition = (x, y) => {
-    console.log('setCrosshairPosition', x, y)
-    console.log('sceneInstance', sceneInstance)
+    //console.log('setCrosshairPosition', x, y)
+    //console.log('sceneInstance', sceneInstance)
     if (!sceneInstance) return;
     sceneInstance.updateCrosshair(x, y);
 
