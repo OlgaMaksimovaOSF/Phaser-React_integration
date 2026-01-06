@@ -3,6 +3,13 @@
   margin: 0 auto;
   padding: 0;
   text-align: center;
+
+  --success: #28a745;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+
+  --dark-gray: #272727;
 }
 
 @keyframes spin {
@@ -17,4 +24,75 @@
 .card {
   padding: 2em;
 }
+
+.hidden {
+  display: none;
+}
+
+.pos-fixed {
+  position: fixed;
+}
+
+.pos-tr {
+  top: 20px;
+  right: 20px
+}
+
+.pos-tl {
+  top: 20px;
+  left: 20px;
+}
+
+.pos-tc {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.btn-success {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.btn-warning {
+  background-color: var(--warning);
+  border-color: var(--warning);
+  color: black;
+}
+
+.btn-info {
+  background-color: var(--info);
+  border-color: var(--info);
+  color: white;
+}
+
+.alert {
+  padding: 10px;
+  width: 150px;
+  border-radius: 5px;
+  color:ghostwhite;
+  border: 1px solid currentColor;
+  background-color: var(--dark-gray);
+}
+
+.mt-3 {
+  margin-top: 16px;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-1 {
+  margin-top: 4px;
+}
+
+
 

@@ -12,7 +12,8 @@ const callbacks = {
     paired: null,
     disconnect: () => console.log('disconnected'),
     orientation: null,
-    fire: null
+    fire: null,
+    message: null
 }
 
 function linkCallbacks() {

@@ -1,17 +1,56 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import Phaser from "phaser";
 import initSocket from "../../services/socketService";
 import phaserService from "../../phaser/phaserService";
+
+import Alert from "../shared/alert/Alert";
 
 const Screen = () => {
     const socketRef = useRef(null);
     const gameRef = useRef(null);
     const { gameId } = useParams();
     //const [orientationData, setOrientationData] = useState(null);
+    const [msg, setMsg] = useState('');
 
     const fireCb = (data) => {
-        console.log('fire');
+        if (!data.gameId || data.gameId !== gameId) return;
+        const res = phaserService.fire();
+        if (res && res.killed) {
+            socketRef.current.emit('kill', {
+                gameId: gameId,
+                reward: res.reward
+            });
+
+            setMsg(`Good job! You killed a monster! \n Your reward: +${res.reward} points!`);
+
+            setTimeout(() => {
+                setMsg('');
+            }, 900);
+        }
+    }
+
+    const messageCb = (data) => {
+        if (data) {
+            switch (data.type) {
+                case 'error':
+                    setMsg(data.msg);
+                    setTimeout(() => {
+                        setMsg('');
+                        if (data.action) {
+                            window.location.href = data.action;
+                        }
+                    }, 3000);
+                    break;
+                defaut:
+                    setMsg(data.msg);
+                    setTimeout(() => {
+                        setMsg('');
+                    }, 1000);
+                    break;
+                    
+            } 
+        }
     }
     
     const orientationCb = (data) => {
@@ -48,7 +87,8 @@ const Screen = () => {
     useEffect(() => {
         socketRef.current = initSocket('screen', {
             fire: fireCb,
-            orientation: orientationCb
+            orientation: orientationCb,
+            message: messageCb,
         });
 
         if (!socketRef.current?.connected) {
@@ -72,6 +112,7 @@ const Screen = () => {
 
     return (
         <>
+            {(msg && msg.length > 0) && <Alert msg={msg} /> }
             <div id="game-container" ref={gameRef}></div>
         </>
     );
