@@ -1,16 +1,43 @@
-# React + Vite
+# Space Shooter Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the frontend for the Space Shooter experiment.
 
-Currently, two official plugins are available:
+## Responsibilities
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- creates and displays the QR pairing flow on `/`
+- renders the Phaser game on `/screen/:gameId`
+- provides the mobile controller UI on `/controller/:gameId`
+- connects to the Socket.IO server over HTTPS
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- Vite 7
+- Phaser 3
+- Socket.IO client
+- `vite-plugin-mkcert` for HTTPS development certificates
 
-## Expanding the ESLint configuration
+## Environment
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The QR code uses `VITE_BASE_URL`:
+
+```env
+VITE_BASE_URL=https://YOUR-LAN-IP:5173
+```
+
+The socket connection is currently derived from the current browser hostname and port `3002`.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+Open the app from a LAN-reachable HTTPS URL so the phone can scan the QR code and request motion permissions correctly.
+
+## Build
+
+```bash
+npm run build
+```

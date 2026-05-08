@@ -6,22 +6,62 @@ let baseBeta = null;
 let baseGamma = null;
 let prevGammaRaw = null;
 let gammaDiff = null;
+let prevNormalizedBeta = null;
+let prevNormalizedGamma = null;
 
-const ANGLE_MIN = -45;
-const ANGLE_MAX = 45;
-const ANGLE_RANGE = ANGLE_MAX - ANGLE_MIN;
+const HORIZONTAL_DELTA_MIN = -45;
+const HORIZONTAL_DELTA_MAX = 45;
+const VERTICAL_DELTA_MIN = -45;
+const VERTICAL_DELTA_MAX = 30;
+const VERTICAL_SOFT_LIMIT = 85;
+const LOW_PASS_ALPHA = 0.2;
+const DEAD_ZONE = 0.01;
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-function clampAngle(value) {
-    return clamp(value, ANGLE_MIN, ANGLE_MAX);
+function clampToRange(value, min, max) {
+    return clamp(value, min, max);
 }
 
-function normalizeAngle(value) {
-    // value is assumed to be clamped, so normalize it to 0..1
-    return (value - ANGLE_MIN) / ANGLE_RANGE;
+function normalizeToUnit(value, min, max) {
+    return (value - min) / (max - min);
+}
+
+function applySmoothing(current, prev) {
+    if (prev === null) return current;
+    return prev + (current - prev) * LOW_PASS_ALPHA;
+}
+
+function applyDeadZone(current, prev) {
+    if (prev === null) return current;
+    return Math.abs(current - prev) < DEAD_ZONE ? prev : current;
+}
+
+function adjustForScreenOrientation(beta, gamma) {
+    const angle = window?.screen?.orientation?.angle ?? window?.orientation ?? 0;
+
+    switch (angle) {
+        case 90:
+            return { beta: gamma, gamma: -beta };
+        case -90:
+            return { beta: -gamma, gamma: beta };
+        case 180:
+        case -180:
+            return { beta: -beta, gamma: -gamma };
+        default:
+            return { beta, gamma };
+    }
+}
+
+function normalizeEuler(beta, gamma) {
+    if (Math.abs(beta) > 90) {
+        beta = beta > 0 ? 180 - beta : -180 - beta;
+        gamma = -gamma;
+    }
+
+    return { beta, gamma };
 }
 
 function listen(handler) {
@@ -33,37 +73,57 @@ function initDefaultOrientationHandler ({ gameId, socket, throttleTime = 200 }) 
     if (!gameId || !socket) return;
 
     throttledEmit = throttle((evt)=> {
+        if (typeof evt.beta !== 'number' || typeof evt.gamma !== 'number') return;
+
+        const adjusted = adjustForScreenOrientation(evt.beta, evt.gamma);
+        const normalized = normalizeEuler(adjusted.beta, adjusted.gamma);
+        let rawGamma = normalized.gamma;
+        const rawBeta = clamp(normalized.beta, -VERTICAL_SOFT_LIMIT, VERTICAL_SOFT_LIMIT);
+
         if (prevGammaRaw === null ) {
-            prevGammaRaw = evt.gamma;
+            prevGammaRaw = rawGamma;
         } else {
-            gammaDiff = evt.gamma - prevGammaRaw;
+            gammaDiff = rawGamma - prevGammaRaw;
 
             if (gammaDiff > 90) {
-                evt.gamma -= 180;
+                rawGamma -= 180;
             } else if (gammaDiff < -90) {
-                evt.gamma += 180;
+                rawGamma += 180;
             }
 
-            prevGammaRaw = evt.gamma;
+            prevGammaRaw = rawGamma;
         }
 
         if (baseBeta === null) {
-            baseBeta = evt.beta;
+            baseBeta = rawBeta;
         }
 
         if (baseGamma === null) {
-            baseGamma = evt.gamma;
+            baseGamma = rawGamma;
         }
 
-        const beta = clampAngle(evt.beta - baseBeta);
-        const gamma = clampAngle(evt.gamma - baseGamma);
+        const deltaBeta = rawBeta - baseBeta;
+        const deltaGamma = rawGamma - baseGamma;
+        const beta = clampToRange(deltaBeta, VERTICAL_DELTA_MIN, VERTICAL_DELTA_MAX);
+        const gamma = clampToRange(deltaGamma, HORIZONTAL_DELTA_MIN, HORIZONTAL_DELTA_MAX);
+        let normalizedBeta = normalizeToUnit(beta, VERTICAL_DELTA_MIN, VERTICAL_DELTA_MAX);
+        let normalizedGamma = normalizeToUnit(gamma, HORIZONTAL_DELTA_MIN, HORIZONTAL_DELTA_MAX);
+
+        normalizedBeta = applyDeadZone(normalizedBeta, prevNormalizedBeta);
+        normalizedGamma = applyDeadZone(normalizedGamma, prevNormalizedGamma);
+
+        normalizedBeta = applySmoothing(normalizedBeta, prevNormalizedBeta);
+        normalizedGamma = applySmoothing(normalizedGamma, prevNormalizedGamma);
+
+        prevNormalizedBeta = normalizedBeta;
+        prevNormalizedGamma = normalizedGamma;
 
         socket.emit('orientation', {
             //alpha: evt.alpha, // not needed for now
             beta,
             gamma,
-            normalizedBeta: normalizeAngle(beta),
-            normalizedGamma: normalizeAngle(gamma),
+            normalizedBeta,
+            normalizedGamma,
             gameId,
         })
     }, throttleTime);
@@ -121,6 +181,9 @@ function stopTracking() {
     baseBeta = null;
     baseGamma = null;
     prevGammaRaw = null;
+    gammaDiff = null;
+    prevNormalizedBeta = null;
+    prevNormalizedGamma = null;
     
 }
 
