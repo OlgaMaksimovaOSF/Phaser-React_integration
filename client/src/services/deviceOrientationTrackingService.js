@@ -9,10 +9,11 @@ let gammaDiff = null;
 let prevNormalizedBeta = null;
 let prevNormalizedGamma = null;
 
-const ANGLE_MIN = -45;
-const ANGLE_MAX = 45;
-const ANGLE_RANGE = ANGLE_MAX - ANGLE_MIN;
-const VERTICAL_LOCK_DEG = 85;
+const HORIZONTAL_DELTA_MIN = -45;
+const HORIZONTAL_DELTA_MAX = 45;
+const VERTICAL_DELTA_MIN = -45;
+const VERTICAL_DELTA_MAX = 30;
+const VERTICAL_SOFT_LIMIT = 85;
 const LOW_PASS_ALPHA = 0.2;
 const DEAD_ZONE = 0.01;
 
@@ -20,13 +21,12 @@ function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
 
-function clampAngle(value) {
-    return clamp(value, ANGLE_MIN, ANGLE_MAX);
+function clampToRange(value, min, max) {
+    return clamp(value, min, max);
 }
 
-function normalizeAngle(value) {
-    // value is assumed to be clamped, so normalize it to 0..1
-    return (value - ANGLE_MIN) / ANGLE_RANGE;
+function normalizeToUnit(value, min, max) {
+    return (value - min) / (max - min);
 }
 
 function applySmoothing(current, prev) {
@@ -76,11 +76,9 @@ function initDefaultOrientationHandler ({ gameId, socket, throttleTime = 200 }) 
         if (typeof evt.beta !== 'number' || typeof evt.gamma !== 'number') return;
 
         const adjusted = adjustForScreenOrientation(evt.beta, evt.gamma);
-        if (Math.abs(adjusted.beta) >= VERTICAL_LOCK_DEG) return;
-
         const normalized = normalizeEuler(adjusted.beta, adjusted.gamma);
-        const rawGamma = normalized.gamma;
-        const rawBeta = normalized.beta;
+        let rawGamma = normalized.gamma;
+        const rawBeta = clamp(normalized.beta, -VERTICAL_SOFT_LIMIT, VERTICAL_SOFT_LIMIT);
 
         if (prevGammaRaw === null ) {
             prevGammaRaw = rawGamma;
@@ -104,10 +102,12 @@ function initDefaultOrientationHandler ({ gameId, socket, throttleTime = 200 }) 
             baseGamma = rawGamma;
         }
 
-        const beta = clampAngle(rawBeta - baseBeta);
-        const gamma = clampAngle(rawGamma - baseGamma);
-        let normalizedBeta = normalizeAngle(beta);
-        let normalizedGamma = normalizeAngle(gamma);
+        const deltaBeta = rawBeta - baseBeta;
+        const deltaGamma = rawGamma - baseGamma;
+        const beta = clampToRange(deltaBeta, VERTICAL_DELTA_MIN, VERTICAL_DELTA_MAX);
+        const gamma = clampToRange(deltaGamma, HORIZONTAL_DELTA_MIN, HORIZONTAL_DELTA_MAX);
+        let normalizedBeta = normalizeToUnit(beta, VERTICAL_DELTA_MIN, VERTICAL_DELTA_MAX);
+        let normalizedGamma = normalizeToUnit(gamma, HORIZONTAL_DELTA_MIN, HORIZONTAL_DELTA_MAX);
 
         normalizedBeta = applyDeadZone(normalizedBeta, prevNormalizedBeta);
         normalizedGamma = applyDeadZone(normalizedGamma, prevNormalizedGamma);
@@ -181,6 +181,7 @@ function stopTracking() {
     baseBeta = null;
     baseGamma = null;
     prevGammaRaw = null;
+    gammaDiff = null;
     prevNormalizedBeta = null;
     prevNormalizedGamma = null;
     
